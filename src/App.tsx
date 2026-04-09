@@ -1,16 +1,74 @@
-import { AppBar, Toolbar, Typography, Container, Button, Box, Card, CardContent } from '@mui/material';
+import { useState, useEffect } from 'react';
+import { AppBar, Toolbar, Typography, Container, Button, Box, Card, CardContent, Grid, CircularProgress, CardActions, CardMedia } from '@mui/material';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 
+// 1. Le decimos a TypeScript cómo se ven nuestros datos
+interface Product {
+  id: string;
+  name: string;
+  description: string;
+  price: string;
+  stock: number;
+  images?: string[];
+}
+
+interface Store {
+  id: string;
+  name: string;
+  products: Product[];
+}
+
 function App() {
+  // 2. Memoria de nuestra app (Estado)
+  const [store, setStore] = useState<Store | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  // 3. El Efecto: Ir a buscar los datos al Backend cuando la página cargue
+  useEffect(() => {
+    fetch('http://localhost:3000/stores/soy-guapa')
+      .then((response) => {
+        if (!response.ok) throw new Error('Error al cargar la tienda');
+        return response.json();
+      })
+      .then((data) => {
+        setStore(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(err.message);
+        setLoading(false);
+      });
+  }, []);
+
+  // 4. Pantalla de carga
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  // 5. Pantalla de Error
+  if (error) {
+    return (
+      <Container sx={{ mt: 4, textAlign: 'center' }}>
+        <Typography color="error" variant="h5">{error}</Typography>
+      </Container>
+    );
+  }
+
+  // 6. Pantalla Principal (¡Con datos reales!)
   return (
     <>
-      {/* 1. BARRA DE NAVEGACIÓN SUPERIOR */}
       <AppBar position="static" color="primary">
         <Toolbar>
           <StorefrontIcon sx={{ mr: 2 }} />
+          {/* El nombre de la tienda ahora viene de la Base de Datos */}
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Soy Guapa - Catálogo
+            {store?.name}
           </Typography>
           <Button color="inherit" startIcon={<ShoppingCartIcon />}>
             Carrito (0)
@@ -18,37 +76,45 @@ function App() {
         </Toolbar>
       </AppBar>
 
-      {/* 2. CONTENEDOR PRINCIPAL */}
-      <Container maxWidth="md" sx={{ mt: 4 }}>
-        
-        {/* 🔥 CORRECCIÓN 1: Usamos sx para el Box */}
-        <Box sx={{ textAlign: 'center', mb: 4 }}>
-          <Typography variant="h4" gutterBottom>
-            ¡Bienvenido a tu tienda!
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Material UI está configurado y listo para la acción.
-          </Typography>
-        </Box>
+      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+        <Typography variant="h4" gutterBottom>
+          Nuestros Productos
+        </Typography>
 
-        {/* 3. TARJETA DE EJEMPLO */}
-        <Card sx={{ maxWidth: 345, mx: 'auto', boxShadow: 3 }}>
-          
-          {/* 🔥 CORRECCIÓN 2: Usamos sx para el CardContent */}
-          <CardContent sx={{ textAlign: 'center' }}>
-            <Typography variant="h5" component="div" gutterBottom>
-              🚀 Siguiente Paso
-            </Typography>
-            
-            {/* 🔥 CORRECCIÓN 3: Usamos sx para el margin-bottom (mb) */}
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Aquí conectaremos nuestro `fetch` para traer los productos de tu backend en NestJS y dibujaremos un "Grid" de tarjetas reales.
-            </Typography>
-            <Button variant="contained" fullWidth>
-              Empezar a programar
-            </Button>
-          </CardContent>
-        </Card>
+        {/* El Grid de Material UI para acomodar las tarjetas */}
+        <Grid container spacing={4}>
+          {store?.products.map((product) => (
+            <Grid key={product.id} size={{ xs: 12, sm: 6, md: 4 }}>
+              <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', boxShadow: 3 }}>
+                <CardContent sx={{ flexGrow: 1 }}>
+                  {/* 🔥 LA MAGIA DE LA IMAGEN AQUÍ */}
+                  <CardMedia
+                    component="img"
+                    height="220"
+                    // Si tiene imágenes y el arreglo no está vacío, usamos la primera. Si no, un placeholder.
+                    image={product.images && product.images.length > 0 ? product.images[0] : 'https://placehold.co/400x300?text=Sin+Foto'}
+                    alt={product.name}
+                    sx={{ objectFit: 'cover' }} // Para que la foto no se estire feo
+                  />
+                  <Typography gutterBottom variant="h5" component="h2">
+                    {product.name}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    {product.description}
+                  </Typography>
+                  <Typography variant="h6" color="primary">
+                    ${product.price}
+                  </Typography>
+                </CardContent>
+                <CardActions>
+                  <Button size="small" variant="contained" fullWidth>
+                    Agregar al carrito
+                  </Button>
+                </CardActions>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
       </Container>
     </>
   );
