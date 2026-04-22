@@ -12,8 +12,10 @@ import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 interface Product {
   id: string;
   name: string;
+  description?: string;
   price: string;
   stock: number;
+  images?: string[];
 }
 
 export default function ProductManager({ token }: { token: string }) {
