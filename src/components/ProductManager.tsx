@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { 
-  Box, Button, Typography, Paper, Table, TableBody, TableCell, 
+import {
+  Box, Button, Typography, Paper, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, IconButton,
   Dialog, DialogTitle, DialogContent, DialogActions, TextField, CircularProgress
 } from '@mui/material';
@@ -18,9 +18,9 @@ interface Product {
   images?: string[];
 }
 
-export default function ProductManager({ token }: { token: string }) {
+export default function ProductManager({ token, storeId }: { token: string, storeId: string }) {
   const [products, setProducts] = useState<Product[]>([]);
-  
+
   // 🔥 Estados para el Modal y el Formulario
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -30,7 +30,7 @@ export default function ProductManager({ token }: { token: string }) {
     description: '',
     price: '',
     stock: '',
-    storeId: 'e37d398e-bfd9-4c18-861a-80d429e2bf4d' // 🛑 OJO: Lee la nota de abajo sobre esto
+    storeId: '' // 🛑 OJO: Lee la nota de abajo sobre esto
   });
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -56,11 +56,13 @@ export default function ProductManager({ token }: { token: string }) {
 
   const fetchProducts = async () => {
     try {
-      const res = await fetch('http://localhost:3000/stores/soy-guapa');
+      // 2. Usamos el ID dinámico en lugar de "soy-guapa"
+      const res = await fetch(`http://localhost:3000/stores/${storeId}`);
       const data = await res.json();
-      // Guardamos la tienda actual para poder usar su ID al crear productos
-      setFormData(prev => ({ ...prev, storeId: data.id }));
-      setProducts(data.products);
+
+      // 3. Ya no necesitamos guardar el storeId del fetch, porque nos lo pasaron por props
+      setFormData(prev => ({ ...prev, storeId: storeId }));
+      setProducts(data.products || []);
     } catch (error) {
       console.error("Error al cargar productos", error);
     }
@@ -85,7 +87,7 @@ export default function ProductManager({ token }: { token: string }) {
     }
   };
 
-const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
@@ -94,7 +96,7 @@ const handleSubmit = async (e: React.FormEvent) => {
     data.append('description', formData.description);
     data.append('price', formData.price);
     data.append('stock', formData.stock);
-    if (formData.storeId) data.append('storeId', formData.storeId); 
+    if (formData.storeId) data.append('storeId', formData.storeId);
 
     // Solo mandamos imagen si el usuario seleccionó una nueva
     if (imageFile) {
@@ -102,10 +104,10 @@ const handleSubmit = async (e: React.FormEvent) => {
     }
 
     // 🔥 LA MAGIA DE LA DECISIÓN:
-    const url = editingId 
+    const url = editingId
       ? `http://localhost:3000/products/${editingId}` // Modo Editar
       : 'http://localhost:3000/products';             // Modo Crear
-      
+
     const method = editingId ? 'PATCH' : 'POST';
 
     try {
@@ -120,7 +122,7 @@ const handleSubmit = async (e: React.FormEvent) => {
         setImageFile(null);
         setEditingId(null);
         setFormData({ ...formData, name: '', description: '', price: '', stock: '' });
-        fetchProducts(); 
+        fetchProducts();
       } else {
         const errorData = await res.json();
         alert(`Error: ${errorData.message}`);
@@ -136,9 +138,9 @@ const handleSubmit = async (e: React.FormEvent) => {
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
         <Typography variant="h5">Catálogo de Productos</Typography>
-        <Button 
-          variant="contained" 
-          color="primary" 
+        <Button
+          variant="contained"
+          color="primary"
           startIcon={<AddIcon />}
           onClick={handleOpenCreate} // Abrimos el modal
         >
@@ -183,20 +185,20 @@ const handleSubmit = async (e: React.FormEvent) => {
         <form onSubmit={handleSubmit}>
           <DialogContent dividers>
             <TextField fullWidth label="Nombre" margin="normal" required
-              value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} 
+              value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })}
             />
             <TextField fullWidth label="Descripción" margin="normal" multiline rows={3} required
-              value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} 
+              value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })}
             />
             <Box sx={{ display: 'flex', gap: 2 }}>
               <TextField fullWidth label="Precio" type="number" margin="normal" required
-                value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} 
+                value={formData.price} onChange={e => setFormData({ ...formData, price: e.target.value })}
               />
               <TextField fullWidth label="Stock" type="number" margin="normal" required
-                value={formData.stock} onChange={e => setFormData({...formData, stock: e.target.value})} 
+                value={formData.stock} onChange={e => setFormData({ ...formData, stock: e.target.value })}
               />
             </Box>
-            
+
             {/* Botón para subir la imagen */}
             <Button component="label" variant="outlined" startIcon={<CloudUploadIcon />} sx={{ mt: 2 }} fullWidth>
               {imageFile ? imageFile.name : 'Subir Imagen (Opcional)'}
